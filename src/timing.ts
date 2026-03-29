@@ -1,4 +1,4 @@
-import type { Line, Word } from "./types";
+import type { Line, Word, Verse } from "./types";
 
 export interface ActiveLineResult {
   activeIndex: number | null;
@@ -44,4 +44,22 @@ export function findActiveLine(
 
 export function isWordHighlighted(word: Word, currentTime: number): boolean {
   return currentTime >= word.start && currentTime < word.end;
+}
+
+export function getActiveVerse(
+  verses: Verse[],
+  currentTime: number,
+): number | null {
+  for (let i = 0; i < verses.length; i++) {
+    if (currentTime >= verses[i].start && currentTime <= verses[i].end) {
+      return i;
+    }
+  }
+  return null;
+}
+
+export function getWordProgress(word: Word, currentTime: number): number {
+  if (currentTime <= word.start) return 0;
+  if (currentTime >= word.end) return 1;
+  return (currentTime - word.start) / (word.end - word.start);
 }

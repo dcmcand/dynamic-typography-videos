@@ -1,0 +1,10 @@
+node_modules/
+.pixi/
+out/*.mp4
+public/audio.*
+src/transcript.json
+*.pyc
+__pycache__/
+.env
+dist/
+CLAUDE.md

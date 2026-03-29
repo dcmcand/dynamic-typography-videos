@@ -1,0 +1,24 @@
+{
+  "name": "lyric-video-remotion",
+  "private": true,
+  "scripts": {
+    "start": "npx remotion studio",
+    "render": "npx remotion render LyricVideo out/video.mp4",
+    "generate": "node scripts/generate.mjs",
+    "test": "npx vitest run"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.441",
+    "@remotion/media-utils": "4.0.441",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "4.0.441"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "4.0.441",
+    "@remotion/renderer": "4.0.441",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}

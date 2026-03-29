@@ -23,6 +23,7 @@ export interface KaraokeVideoProps {
 }
 
 const INSTRUMENTAL_THRESHOLD = 3; // seconds
+const VERSE_PREVIEW_LEAD = 2; // show upcoming verse this many seconds before break ends
 
 export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
   transcript,
@@ -70,6 +71,8 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
 
   // Determine if we're in an instrumental break
   let instrumentalProgress: number | null = null;
+  let nextVerseIdx: number | null = null;
+  let timeUntilNextVerse: number | null = null;
   if (activeVerseIdx === null && verses.length > 0) {
     // Find which gap we're in
     let gapStart = 0;
@@ -79,6 +82,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
     if (currentTime < verses[0].start) {
       gapStart = 0;
       gapEnd = verses[0].start;
+      nextVerseIdx = 0;
     } else {
       // Check gaps between verses and after last verse
       for (let i = 0; i < verses.length; i++) {
@@ -89,6 +93,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
         if (currentTime > verses[i].end && currentTime < nextStart) {
           gapStart = verses[i].end;
           gapEnd = nextStart;
+          nextVerseIdx = i + 1 < verses.length ? i + 1 : null;
           break;
         }
       }
@@ -98,6 +103,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
     if (gapDuration > INSTRUMENTAL_THRESHOLD) {
       instrumentalProgress = (currentTime - gapStart) / gapDuration;
     }
+    timeUntilNextVerse = gapEnd - currentTime;
   }
 
   return (
@@ -132,6 +138,19 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
             progress={instrumentalProgress}
           />
         )}
+
+        {nextVerseIdx !== null &&
+          timeUntilNextVerse !== null &&
+          timeUntilNextVerse <= VERSE_PREVIEW_LEAD && (
+            <div style={{ opacity: 0.3, marginTop: 60 }}>
+              <KaraokeVerse
+                verse={verses[nextVerseIdx]}
+                lines={lines}
+                style={preset}
+                currentTime={currentTime}
+              />
+            </div>
+          )}
       </AbsoluteFill>
     </AbsoluteFill>
   );

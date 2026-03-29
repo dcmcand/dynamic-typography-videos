@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 
 import { execSync, spawnSync } from "child_process";
-import { existsSync, copyFileSync, mkdirSync, statSync } from "fs";
-import { resolve, basename } from "path";
+import { existsSync, copyFileSync, mkdirSync, statSync, readFileSync } from "fs";
+import { resolve, basename, parse as parsePath } from "path";
+import { homedir } from "os";
 import { parseArgs } from "util";
 
 const { values: args } = parseArgs({
   options: {
     input: { type: "string" },
     lyrics: { type: "string" },
+    instrumental: { type: "string" },
     style: { type: "string", default: "neon" },
-    output: { type: "string", default: "out/video.mp4" },
+    output: { type: "string" },
     model: { type: "string", default: "base" },
     language: { type: "string" },
     preview: { type: "boolean", default: false },
@@ -49,10 +51,25 @@ if (!existsSync(inputPath)) {
   fatal(`Audio file not found: ${inputPath}`);
 }
 
+if (!args.output) {
+  const songName = parsePath(inputPath).name;
+  args.output = resolve(homedir(), "Videos", `${songName}.mp4`);
+}
+
 if (args.lyrics) {
   const lyricsPath = resolve(args.lyrics);
   if (!existsSync(lyricsPath)) {
     fatal(`Lyrics file not found: ${lyricsPath}`);
+  }
+}
+
+if (args.instrumental) {
+  const instrumentalPath = resolve(args.instrumental);
+  if (!existsSync(instrumentalPath)) {
+    fatal(`Instrumental file not found: ${instrumentalPath}`);
+  }
+  if (!args.lyrics) {
+    fatal("--instrumental requires --lyrics (karaoke needs known lyrics for word timing)");
   }
 }
 
@@ -61,7 +78,7 @@ console.log("\n--- Step 1: Transcription ---\n");
 
 const transcriptPath = resolve("src/transcript.json");
 const transcribeArgs = [
-  "run", "transcribe", "--",
+  "run", "python", "scripts/transcribe.py",
   "--input", inputPath,
   "--output", transcriptPath,
   "--model", args.model,
@@ -85,10 +102,11 @@ if (transcribeResult.status !== 0) {
 console.log("\n--- Step 2: Preparing audio ---\n");
 
 mkdirSync(resolve("public"), { recursive: true });
-const audioDestName = "audio" + inputPath.substring(inputPath.lastIndexOf("."));
+const audioSourcePath = args.instrumental ? resolve(args.instrumental) : inputPath;
+const audioDestName = "audio" + audioSourcePath.substring(audioSourcePath.lastIndexOf("."));
 const audioDest = resolve("public", audioDestName);
-copyFileSync(inputPath, audioDest);
-console.log(`Copied audio to ${audioDest}`);
+copyFileSync(audioSourcePath, audioDest);
+console.log(`Copied ${args.instrumental ? "instrumental" : "audio"} to ${audioDest}`);
 
 // Step 3: Open Studio if requested
 if (args.open) {
@@ -103,16 +121,26 @@ console.log("\n--- Step 3: Rendering video ---\n");
 const outputPath = resolve(args.output);
 mkdirSync(resolve(outputPath, ".."), { recursive: true });
 
+const transcript = JSON.parse(readFileSync(transcriptPath, "utf-8"));
+const isKaraoke = !!args.instrumental;
+const compositionId = isKaraoke ? "KaraokeVideo" : "LyricVideo";
+
+const countdownDuration =
+  isKaraoke && transcript.verses && transcript.verses.length > 0 && transcript.verses[0].start < 5
+    ? 5
+    : 0;
+
 const props = JSON.stringify({
-  transcriptPath: "src/transcript.json",
+  transcript,
   style: args.style,
   audioSrc: audioDestName,
+  ...(isKaraoke && { countdownDuration }),
 });
 
 const renderArgs = [
   "remotion", "render",
   "src/index.ts",
-  "LyricVideo",
+  compositionId,
   outputPath,
   `--props=${props}`,
 ];

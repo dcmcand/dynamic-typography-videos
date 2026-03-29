@@ -2,9 +2,15 @@ import React from "react";
 import { Composition } from "remotion";
 import { LyricVideo } from "./LyricVideo/LyricVideo";
 import type { LyricVideoProps } from "./LyricVideo/LyricVideo";
+import { KaraokeVideo } from "./KaraokeVideo/KaraokeVideo";
+import type { KaraokeVideoProps } from "./KaraokeVideo/KaraokeVideo";
 
 const LyricVideoWrapper: React.FC<Record<string, unknown>> = (props) => {
   return <LyricVideo {...(props as unknown as LyricVideoProps)} />;
+};
+
+const KaraokeVideoWrapper: React.FC<Record<string, unknown>> = (props) => {
+  return <KaraokeVideo {...(props as unknown as KaraokeVideoProps)} />;
 };
 
 const defaultTranscript = {
@@ -42,6 +48,17 @@ const defaultTranscript = {
   ],
 };
 
+const defaultKaraokeTranscript = {
+  ...defaultTranscript,
+  verses: [
+    {
+      lines: [0, 1],
+      start: 0.5,
+      end: 3.2,
+    },
+  ],
+};
+
 export const RemotionRoot: React.FC = () => {
   return (
     <>
@@ -61,6 +78,28 @@ export const RemotionRoot: React.FC = () => {
           const p = props as unknown as LyricVideoProps;
           return {
             durationInFrames: Math.ceil(p.transcript.duration * 30),
+          };
+        }}
+      />
+      <Composition
+        id="KaraokeVideo"
+        component={KaraokeVideoWrapper}
+        width={1920}
+        height={1080}
+        fps={30}
+        durationInFrames={300}
+        defaultProps={{
+          transcript: defaultKaraokeTranscript,
+          style: "neon",
+          audioSrc: "",
+          countdownDuration: 0,
+        }}
+        calculateMetadata={({ props }) => {
+          const p = props as unknown as KaraokeVideoProps;
+          return {
+            durationInFrames: Math.ceil(
+              (p.transcript.duration + p.countdownDuration) * 30,
+            ),
           };
         }}
       />

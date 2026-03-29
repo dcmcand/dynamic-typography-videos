@@ -55,7 +55,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           transcript: defaultTranscript,
           style: "neon",
-          audioSrc: "audio.mp3",
+          audioSrc: "",
         }}
         calculateMetadata={({ props }) => {
           const p = props as unknown as LyricVideoProps;

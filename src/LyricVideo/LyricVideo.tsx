@@ -41,7 +41,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
     <AbsoluteFill>
       <Background style={preset} frame={frame} fps={fps} />
 
-      <Audio src={staticFile(audioSrc.replace(/^\//, ""))} />
+      {audioSrc && <Audio src={staticFile(audioSrc.replace(/^\//, ""))} />}
 
       <AbsoluteFill
         style={{

@@ -83,6 +83,36 @@ def group_words_from_lyrics(
     return lines
 
 
+def group_verses_from_lyrics(lyrics_text: str, lines: list[dict]) -> list[dict]:
+    """Group lines into verses based on blank-line separations in lyrics text."""
+    raw_lines = lyrics_text.splitlines()
+    verse_groups: list[list[int]] = []
+    current_group: list[int] = []
+    line_idx = 0
+
+    for raw_line in raw_lines:
+        if raw_line.strip():
+            if line_idx < len(lines):
+                current_group.append(line_idx)
+                line_idx += 1
+        else:
+            if current_group:
+                verse_groups.append(current_group)
+                current_group = []
+
+    if current_group:
+        verse_groups.append(current_group)
+
+    verses = []
+    for group in verse_groups:
+        verses.append({
+            "lines": group,
+            "start": lines[group[0]]["start"],
+            "end": lines[group[-1]]["end"],
+        })
+    return verses
+
+
 def _make_line(words: list[dict]) -> dict:
     """Build a line dict from a list of word dicts."""
     return {
@@ -173,10 +203,8 @@ def transcribe_aligned(
     model = stable_whisper.load_model(model_size)
 
     print(f"Aligning lyrics to '{audio_path}'...")
-    kwargs = {}
-    if language:
-        kwargs["language"] = language
-    result = model.align(audio_path, lyrics_text, **kwargs)
+    align_language = language or "en"
+    result = model.align(audio_path, lyrics_text, language=align_language)
 
     if result is None:
         print("WARNING: Alignment failed, falling back to auto-transcription...")
@@ -184,6 +212,7 @@ def transcribe_aligned(
 
     words = extract_words_from_stable_ts(result)
     lines = group_words_from_lyrics(words, lyrics_lines)
+    verses = group_verses_from_lyrics(lyrics_text, lines)
 
     duration = result.segments[-1].end if result.segments else 0.0
     print(f"Forced alignment complete - {len(words)} words aligned")
@@ -193,6 +222,7 @@ def transcribe_aligned(
         "mode": "aligned",
         "words": words,
         "lines": lines,
+        "verses": verses,
     }
 
 

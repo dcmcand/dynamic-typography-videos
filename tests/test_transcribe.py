@@ -5,7 +5,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from transcribe import group_words_auto, group_words_from_lyrics
+from transcribe import group_words_auto, group_words_from_lyrics, group_verses_from_lyrics
 
 
 def make_word(word: str, start: float, end: float) -> dict:
@@ -96,3 +96,52 @@ class TestGroupWordsFromLyrics:
         lines = group_words_from_lyrics(words, lyrics_lines)
         assert lines[0]["start"] == 2.5
         assert lines[0]["end"] == 3.5
+
+
+class TestGroupVersesFromLyrics:
+    def test_groups_lines_by_blank_line_separator(self):
+        lyrics_text = "line one\nline two\n\nline three\nline four"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 1.0, "end": 2.0, "words": []},
+            {"text": "line three", "start": 4.0, "end": 5.0, "words": []},
+            {"text": "line four", "start": 5.0, "end": 6.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 2
+        assert verses[0]["lines"] == [0, 1]
+        assert verses[0]["start"] == 0.0
+        assert verses[0]["end"] == 2.0
+        assert verses[1]["lines"] == [2, 3]
+        assert verses[1]["start"] == 4.0
+        assert verses[1]["end"] == 6.0
+
+    def test_single_verse_no_blank_lines(self):
+        lyrics_text = "line one\nline two\nline three"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 1.0, "end": 2.0, "words": []},
+            {"text": "line three", "start": 2.0, "end": 3.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 1
+        assert verses[0]["lines"] == [0, 1, 2]
+
+    def test_multiple_blank_lines_treated_as_one_separator(self):
+        lyrics_text = "line one\n\n\nline two"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 3.0, "end": 4.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 2
+
+    def test_trailing_blank_lines_ignored(self):
+        lyrics_text = "line one\nline two\n\n"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 1.0, "end": 2.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 1
+        assert verses[0]["lines"] == [0, 1]

@@ -11,11 +11,18 @@ export interface Line {
   words: Word[];
 }
 
+export interface Verse {
+  lines: number[];
+  start: number;
+  end: number;
+}
+
 export interface Transcript {
   duration: number;
   mode: "aligned" | "transcribed";
   words: Word[];
   lines: Line[];
+  verses?: Verse[];
 }
 
 export interface StylePreset {

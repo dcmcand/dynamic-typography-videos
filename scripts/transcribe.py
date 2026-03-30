@@ -13,6 +13,12 @@ import sys
 from pathlib import Path
 
 
+def is_bracket_line(line: str) -> bool:
+    """Check if a line is a bracket annotation like [verse 1] or [intro - 8 bars]."""
+    stripped = line.strip()
+    return stripped.startswith("[") and stripped.endswith("]") and stripped.count("[") == 1
+
+
 def group_words_auto(words: list[dict]) -> list[dict]:
     """Group words into display lines for auto-transcription mode.
 
@@ -91,14 +97,15 @@ def group_verses_from_lyrics(lyrics_text: str, lines: list[dict]) -> list[dict]:
     line_idx = 0
 
     for raw_line in raw_lines:
-        if raw_line.strip():
-            if line_idx < len(lines):
-                current_group.append(line_idx)
-                line_idx += 1
-        else:
+        stripped = raw_line.strip()
+        if not stripped or is_bracket_line(stripped):
             if current_group:
                 verse_groups.append(current_group)
                 current_group = []
+        else:
+            if line_idx < len(lines):
+                current_group.append(line_idx)
+                line_idx += 1
 
     if current_group:
         verse_groups.append(current_group)
@@ -197,14 +204,18 @@ def transcribe_aligned(
     import stable_whisper
 
     lyrics_text = Path(lyrics_path).read_text().strip()
-    lyrics_lines = [line.strip() for line in lyrics_text.splitlines() if line.strip()]
+    lyrics_lines = [
+        line.strip() for line in lyrics_text.splitlines()
+        if line.strip() and not is_bracket_line(line.strip())
+    ]
 
     print(f"Loading stable-ts model '{model_size}'...")
     model = stable_whisper.load_model(model_size)
 
     print(f"Aligning lyrics to '{audio_path}'...")
     align_language = language or "en"
-    result = model.align(audio_path, lyrics_text, language=align_language)
+    clean_text = "\n".join(lyrics_lines)
+    result = model.align(audio_path, clean_text, language=align_language)
 
     if result is None:
         print("WARNING: Alignment failed, falling back to auto-transcription...")

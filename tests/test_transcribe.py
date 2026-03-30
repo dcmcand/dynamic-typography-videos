@@ -5,7 +5,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from transcribe import group_words_auto, group_words_from_lyrics, group_verses_from_lyrics
+from transcribe import group_words_auto, group_words_from_lyrics, is_bracket_line, group_verses_from_lyrics
 
 
 def make_word(word: str, start: float, end: float) -> dict:
@@ -96,6 +96,69 @@ class TestGroupWordsFromLyrics:
         lines = group_words_from_lyrics(words, lyrics_lines)
         assert lines[0]["start"] == 2.5
         assert lines[0]["end"] == 3.5
+
+
+class TestIsBracketLine:
+    def test_simple_bracket(self):
+        assert is_bracket_line("[verse 1]") is True
+
+    def test_bracket_with_description(self):
+        assert is_bracket_line("[intro - driving instrumental, 8 bars]") is True
+
+    def test_normal_lyric(self):
+        assert is_bracket_line("Oye, corazon") is False
+
+    def test_bracket_in_middle_of_text(self):
+        assert is_bracket_line("hello [world] there") is False
+
+    def test_empty_brackets(self):
+        assert is_bracket_line("[]") is True
+
+    def test_whitespace_around_brackets(self):
+        assert is_bracket_line("  [chorus]  ") is True
+
+
+class TestGroupVersesWithBrackets:
+    def test_brackets_act_as_verse_separators(self):
+        lyrics_text = "line one\nline two\n[chorus]\nline three\nline four"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 1.0, "end": 2.0, "words": []},
+            {"text": "line three", "start": 4.0, "end": 5.0, "words": []},
+            {"text": "line four", "start": 5.0, "end": 6.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 2
+        assert verses[0]["lines"] == [0, 1]
+        assert verses[1]["lines"] == [2, 3]
+
+    def test_stacked_brackets_collapse(self):
+        lyrics_text = "line one\n[verse 1]\n[intro]\nline two"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 3.0, "end": 4.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 2
+
+    def test_brackets_mixed_with_blank_lines(self):
+        lyrics_text = "line one\n\n[chorus]\n\nline two"
+        lines = [
+            {"text": "line one", "start": 0.0, "end": 1.0, "words": []},
+            {"text": "line two", "start": 3.0, "end": 4.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 2
+
+    def test_leading_bracket_before_first_lyrics(self):
+        lyrics_text = "[intro - 8 bars]\nline one\nline two"
+        lines = [
+            {"text": "line one", "start": 2.0, "end": 3.0, "words": []},
+            {"text": "line two", "start": 3.0, "end": 4.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 1
+        assert verses[0]["lines"] == [0, 1]
 
 
 class TestGroupVersesFromLyrics:

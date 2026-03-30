@@ -7,7 +7,6 @@ import {
   writeFileSync,
   readdirSync,
   statSync as fstatSync,
-  mkdirSync,
 } from "fs";
 import { resolve, join } from "path";
 import { homedir } from "os";

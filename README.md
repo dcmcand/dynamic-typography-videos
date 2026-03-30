@@ -35,21 +35,77 @@ pixi install && npm install
 
 ## Quick Start
 
-### Lyric video
+### Folder-based (recommended)
 
-```bash
-node scripts/generate.mjs --input song.mp3 --lyrics lyrics.txt --style neon
+Organize each song in its own folder under `contents/`:
+
+```
+contents/my_song/
+  song.mp3               # audio file
+  lyrics.txt             # lyrics (one line per line, blank lines between verses)
+  instrumental.mp3       # instrumental track (for karaoke)
+  song.yaml              # optional config overrides
 ```
 
-### Karaoke video
-
-Requires an instrumental track and a lyrics file:
+Then generate with a single command:
 
 ```bash
+node scripts/generate.mjs contents/my_song/
+```
+
+Output goes to the song folder: `contents/my_song/My Song.mp4` (and `My Song karaoke.mp4` if karaoke is enabled).
+
+### Flag-based
+
+```bash
+# Lyric video
+node scripts/generate.mjs --input song.mp3 --lyrics lyrics.txt --style neon
+
+# Karaoke video
 node scripts/generate.mjs --input song.mp3 --lyrics lyrics.txt --instrumental instrumental.mp3 --style neon
 ```
 
-Output defaults to `~/Videos/<song name>.mp4` (or `<song name> karaoke.mp4` for karaoke mode). Use `--output` to override.
+Output defaults to `~/Videos/<song name>.mp4`. Use `--output` to override.
+
+## Folder-Based Workflow
+
+### Convention Defaults
+
+If you follow the naming conventions, no config file is needed. The title is derived from the folder name (underscores and dashes become spaces, title-cased).
+
+### song.yaml
+
+Override any defaults with an optional `song.yaml`:
+
+```yaml
+title: "My Song Title"
+song_path: song.mp3
+lyrics_path: lyrics.txt
+instrumental_path: instrumental.mp3
+aligned_lyrics: lyrics.json
+generate_karaoke: true
+style: neon
+language: es
+model: base
+```
+
+All fields are optional. When `generate_karaoke: true`, both a lyric video and a karaoke video are generated. Lyrics and instrumental files are required for karaoke mode.
+
+### Config Priority
+
+CLI flags > song.yaml > convention defaults
+
+```bash
+# Override style from command line
+node scripts/generate.mjs contents/my_song/ --style bold
+
+# Write output to a different folder
+node scripts/generate.mjs contents/my_song/ --output-folder ~/Videos
+```
+
+### Transcript Caching
+
+Aligned transcripts are saved as `lyrics.json` in the song folder. On subsequent runs, transcription is skipped and the cached file is reused. You can manually edit `lyrics.json` to fix word timing or text errors. Use `--retranscribe` to force re-transcription.
 
 ## How It Works
 
@@ -82,14 +138,17 @@ Output defaults to `~/Videos/<song name>.mp4` (or `<song name> karaoke.mp4` for 
 
 | Flag              | Default                    | Description                              |
 |-------------------|----------------------------|------------------------------------------|
-| `--input`         | required                   | Path to audio file (.mp3 or .wav)        |
-| `--lyrics`        | none                       | Path to lyrics .txt for forced alignment |
+| `--input`         | `song.mp3` (folder mode)   | Path to audio file (.mp3 or .wav)        |
+| `--lyrics`        | `lyrics.txt` (folder mode) | Path to lyrics .txt for forced alignment |
 | `--instrumental`  | none                       | Path to instrumental track (enables karaoke mode) |
-| `--style`         | `neon`                     | Style preset name                        |
-| `--output`        | `~/Videos/<song name>.mp4` | Output video path                        |
+| `--style`         | `minimal`                  | Style preset name                        |
+| `--output`        | song folder or `~/Videos/` | Output video path                        |
+| `--output-folder` | song folder                | Write output videos to this directory    |
 | `--model`         | `base`                     | Whisper model size (tiny/base/small/medium/large) |
 | `--language`      | auto                       | Language code (en, es, etc.)             |
+| `--title`         | derived from folder name   | Override the video title                 |
 | `--preview`       | false                      | Render only first 15 seconds             |
+| `--retranscribe`  | false                      | Force re-transcription (ignore cache)    |
 | `--open`          | false                      | Open Remotion Studio before rendering    |
 
 ## Lyrics File Format

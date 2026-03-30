@@ -141,6 +141,13 @@ const hasCached = cachedPath && existsSync(cachedPath) && !forceTranscribe;
 if (hasCached) {
   console.log(`\n--- Step 1: Using cached transcript: ${cachedPath} ---\n`);
   transcript = JSON.parse(readFileSync(cachedPath, "utf-8"));
+
+  // Detect old format (duplicated word data on lines)
+  if (transcript.lines && transcript.lines[0] && transcript.lines[0].words) {
+    console.log("WARNING: Cached transcript uses old format (duplicated word data).");
+    console.log("Run with --retranscribe to regenerate: make transcribe " + (config.folderPath || ""));
+    fatal("Incompatible transcript format");
+  }
 } else {
   console.log("\n--- Step 1: Transcription ---\n");
 

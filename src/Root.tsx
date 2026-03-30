@@ -25,37 +25,15 @@ const defaultTranscript = {
     { word: "preview", start: 2.6, end: 3.2 },
   ],
   lines: [
-    {
-      text: "Hello world",
-      start: 0.5,
-      end: 1.5,
-      words: [
-        { word: "Hello", start: 0.5, end: 1.0 },
-        { word: "world", start: 1.0, end: 1.5 },
-      ],
-    },
-    {
-      text: "this is a preview",
-      start: 2.0,
-      end: 3.2,
-      words: [
-        { word: "this", start: 2.0, end: 2.3 },
-        { word: "is", start: 2.3, end: 2.5 },
-        { word: "a", start: 2.5, end: 2.6 },
-        { word: "preview", start: 2.6, end: 3.2 },
-      ],
-    },
+    { text: "Hello world", wordIndices: [0, 1] },
+    { text: "this is a preview", wordIndices: [2, 3, 4, 5] },
   ],
 };
 
 const defaultKaraokeTranscript = {
   ...defaultTranscript,
   verses: [
-    {
-      lines: [0, 1],
-      start: 0.5,
-      end: 3.2,
-    },
+    { lineIndices: [0, 1] },
   ],
 };
 

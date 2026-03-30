@@ -1,10 +1,12 @@
 import React from "react";
 import { interpolate, spring } from "remotion";
-import type { Line, StylePreset } from "../types";
+import type { Line, StylePreset, Word } from "../types";
+import { getLineWords } from "../timing";
 import { LyricWord } from "./LyricWord";
 
 interface LyricLineProps {
   line: Line;
+  words: Word[];
   isActive: boolean;
   style: StylePreset;
   fps: number;
@@ -15,6 +17,7 @@ interface LyricLineProps {
 
 export const LyricLine: React.FC<LyricLineProps> = ({
   line,
+  words,
   isActive,
   style,
   fps,
@@ -23,6 +26,7 @@ export const LyricLine: React.FC<LyricLineProps> = ({
   lineStartFrame,
 }) => {
   const localFrame = Math.max(0, frame - lineStartFrame);
+  const resolvedWords = getLineWords(line, words);
 
   if (!isActive) {
     return (
@@ -86,7 +90,7 @@ export const LyricLine: React.FC<LyricLineProps> = ({
         flexWrap: "wrap",
       }}
     >
-      {line.words.map((word, i) => (
+      {resolvedWords.map((word, i) => (
         <LyricWord
           key={`${word.start}-${i}`}
           word={word}

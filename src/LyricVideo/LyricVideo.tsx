@@ -8,7 +8,7 @@ import {
 } from "remotion";
 import type { Transcript } from "../types";
 import { STYLES } from "../styles/presets";
-import { findActiveLine } from "../timing";
+import { findActiveLine, getLineStart } from "../timing";
 import { Background } from "./Background";
 import { LyricLine } from "./LyricLine";
 
@@ -28,9 +28,10 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   const currentTime = frame / fps;
 
   const preset = STYLES[styleName] ?? STYLES.neon;
-  const { lines } = transcript;
+  const { lines, words } = transcript;
   const { activeIndex, prevIndex, nextIndex } = findActiveLine(
     lines,
+    words,
     currentTime,
   );
 
@@ -61,12 +62,13 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           >
             <LyricLine
               line={lines[prevIndex]}
+              words={words}
               isActive={false}
               style={preset}
               fps={fps}
               currentTime={currentTime}
               frame={frame}
-              lineStartFrame={Math.floor(lines[prevIndex].start * fps)}
+              lineStartFrame={Math.floor(getLineStart(lines[prevIndex], words) * fps)}
             />
           </div>
         )}
@@ -81,12 +83,13 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           >
             <LyricLine
               line={lines[activeIndex]}
+              words={words}
               isActive={true}
               style={preset}
               fps={fps}
               currentTime={currentTime}
               frame={frame}
-              lineStartFrame={Math.floor(lines[activeIndex].start * fps)}
+              lineStartFrame={Math.floor(getLineStart(lines[activeIndex], words) * fps)}
             />
           </div>
         )}
@@ -101,12 +104,13 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           >
             <LyricLine
               line={lines[nextIndex]}
+              words={words}
               isActive={false}
               style={preset}
               fps={fps}
               currentTime={currentTime}
               frame={frame}
-              lineStartFrame={Math.floor(lines[nextIndex].start * fps)}
+              lineStartFrame={Math.floor(getLineStart(lines[nextIndex], words) * fps)}
             />
           </div>
         )}

@@ -1,10 +1,12 @@
 import React from "react";
-import type { Line, StylePreset, Verse } from "../types";
+import type { Line, StylePreset, Verse, Word } from "../types";
+import { getLineWords } from "../timing";
 import { KaraokeWord } from "./KaraokeWord";
 
 interface KaraokeVerseProps {
   verse: Verse;
   lines: Line[];
+  words: Word[];
   style: StylePreset;
   currentTime: number;
 }
@@ -12,10 +14,11 @@ interface KaraokeVerseProps {
 export const KaraokeVerse: React.FC<KaraokeVerseProps> = ({
   verse,
   lines,
+  words,
   style,
   currentTime,
 }) => {
-  const verseLines = verse.lines.map((idx) => lines[idx]);
+  const verseLines = verse.lineIndices.map((idx) => lines[idx]);
   const lineCount = verseLines.length;
 
   // Auto-scale: base font size fits ~6 lines comfortably in 1080p.
@@ -38,27 +41,30 @@ export const KaraokeVerse: React.FC<KaraokeVerseProps> = ({
         gap: lineHeight * 0.2,
       }}
     >
-      {verseLines.map((line, lineIdx) => (
-        <div
-          key={`${line.start}-${lineIdx}`}
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            lineHeight: `${lineHeight}px`,
-          }}
-        >
-          {line.words.map((word, wordIdx) => (
-            <KaraokeWord
-              key={`${word.start}-${wordIdx}`}
-              word={word}
-              style={style}
-              currentTime={currentTime}
-              fontSize={fontSize}
-            />
-          ))}
-        </div>
-      ))}
+      {verseLines.map((line, lineIdx) => {
+        const resolvedWords = getLineWords(line, words);
+        return (
+          <div
+            key={`${lineIdx}`}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              lineHeight: `${lineHeight}px`,
+            }}
+          >
+            {resolvedWords.map((word, wordIdx) => (
+              <KaraokeWord
+                key={`${word.start}-${wordIdx}`}
+                word={word}
+                style={style}
+                currentTime={currentTime}
+                fontSize={fontSize}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 };

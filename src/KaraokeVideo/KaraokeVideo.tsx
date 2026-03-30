@@ -7,9 +7,9 @@ import {
   useVideoConfig,
   staticFile,
 } from "remotion";
-import type { Transcript, Verse } from "../types";
+import type { Transcript } from "../types";
 import { STYLES } from "../styles/presets";
-import { getActiveVerse } from "../timing";
+import { getActiveVerse, getVerseStart, getVerseEnd } from "../timing";
 import { Background } from "../LyricVideo/Background";
 import { KaraokeVerse } from "./KaraokeVerse";
 import { InstrumentalBreak } from "./InstrumentalBreak";
@@ -36,7 +36,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
 
   const preset = STYLES[styleName] ?? STYLES.neon;
   const verses = transcript.verses ?? [];
-  const { lines } = transcript;
+  const { lines, words } = transcript;
 
   // Adjust current time for countdown offset
   const currentTime = frame / fps - countdownDuration;
@@ -44,7 +44,9 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
   // During countdown (before audio starts)
   if (currentTime < 0) {
     const firstVerseLines =
-      verses.length > 0 ? verses[0].lines.map((idx) => lines[idx]) : [];
+      verses.length > 0
+        ? verses[0].lineIndices.map((idx) => lines[idx])
+        : [];
     return (
       <AbsoluteFill>
         <Background style={preset} frame={frame} fps={fps} />
@@ -67,7 +69,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
     );
   }
 
-  const activeVerseIdx = getActiveVerse(verses, currentTime);
+  const activeVerseIdx = getActiveVerse(verses, lines, words, currentTime);
 
   // Determine if we're in an instrumental break
   let instrumentalProgress: number | null = null;
@@ -76,22 +78,22 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
   if (activeVerseIdx === null && verses.length > 0) {
     // Find which gap we're in
     let gapStart = 0;
-    let gapEnd = verses[0].start;
+    let gapEnd = getVerseStart(verses[0], lines, words);
 
     // Check before first verse
-    if (currentTime < verses[0].start) {
+    if (currentTime < gapEnd) {
       gapStart = 0;
-      gapEnd = verses[0].start;
       nextVerseIdx = 0;
     } else {
       // Check gaps between verses and after last verse
       for (let i = 0; i < verses.length; i++) {
+        const vEnd = getVerseEnd(verses[i], lines, words);
         const nextStart =
           i + 1 < verses.length
-            ? verses[i + 1].start
+            ? getVerseStart(verses[i + 1], lines, words)
             : transcript.duration;
-        if (currentTime > verses[i].end && currentTime < nextStart) {
-          gapStart = verses[i].end;
+        if (currentTime > vEnd && currentTime < nextStart) {
+          gapStart = vEnd;
           gapEnd = nextStart;
           nextVerseIdx = i + 1 < verses.length ? i + 1 : null;
           break;
@@ -127,6 +129,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
           <KaraokeVerse
             verse={verses[activeVerseIdx]}
             lines={lines}
+            words={words}
             style={preset}
             currentTime={currentTime}
           />
@@ -146,6 +149,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
               <KaraokeVerse
                 verse={verses[nextVerseIdx]}
                 lines={lines}
+                words={words}
                 style={preset}
                 currentTime={currentTime}
               />

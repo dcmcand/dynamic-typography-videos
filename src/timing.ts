@@ -1,5 +1,25 @@
 import type { Line, Word, Verse } from "./types";
 
+export function getLineStart(line: Line, words: Word[]): number {
+  return words[line.wordIndices[0]].start;
+}
+
+export function getLineEnd(line: Line, words: Word[]): number {
+  return words[line.wordIndices[line.wordIndices.length - 1]].end;
+}
+
+export function getLineWords(line: Line, words: Word[]): Word[] {
+  return line.wordIndices.map((i) => words[i]);
+}
+
+export function getVerseStart(verse: Verse, lines: Line[], words: Word[]): number {
+  return getLineStart(lines[verse.lineIndices[0]], words);
+}
+
+export function getVerseEnd(verse: Verse, lines: Line[], words: Word[]): number {
+  return getLineEnd(lines[verse.lineIndices[verse.lineIndices.length - 1]], words);
+}
+
 export interface ActiveLineResult {
   activeIndex: number | null;
   prevIndex: number | null;
@@ -8,12 +28,15 @@ export interface ActiveLineResult {
 
 export function findActiveLine(
   lines: Line[],
+  words: Word[],
   currentTime: number,
 ): ActiveLineResult {
   let activeIndex: number | null = null;
 
   for (let i = 0; i < lines.length; i++) {
-    if (currentTime >= lines[i].start && currentTime <= lines[i].end) {
+    const start = getLineStart(lines[i], words);
+    const end = getLineEnd(lines[i], words);
+    if (currentTime >= start && currentTime <= end) {
       activeIndex = i;
       break;
     }
@@ -31,10 +54,12 @@ export function findActiveLine(
   let nextIndex: number | null = null;
 
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].end <= currentTime) {
+    const end = getLineEnd(lines[i], words);
+    const start = getLineStart(lines[i], words);
+    if (end <= currentTime) {
       prevIndex = i;
     }
-    if (lines[i].start > currentTime && nextIndex === null) {
+    if (start > currentTime && nextIndex === null) {
       nextIndex = i;
     }
   }
@@ -48,10 +73,14 @@ export function isWordHighlighted(word: Word, currentTime: number): boolean {
 
 export function getActiveVerse(
   verses: Verse[],
+  lines: Line[],
+  words: Word[],
   currentTime: number,
 ): number | null {
   for (let i = 0; i < verses.length; i++) {
-    if (currentTime >= verses[i].start && currentTime <= verses[i].end) {
+    const start = getVerseStart(verses[i], lines, words);
+    const end = getVerseEnd(verses[i], lines, words);
+    if (currentTime >= start && currentTime <= end) {
       return i;
     }
   }

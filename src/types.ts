@@ -6,15 +6,11 @@ export interface Word {
 
 export interface Line {
   text: string;
-  start: number;
-  end: number;
-  words: Word[];
+  wordIndices: number[];
 }
 
 export interface Verse {
-  lines: number[];
-  start: number;
-  end: number;
+  lineIndices: number[];
 }
 
 export interface Transcript {

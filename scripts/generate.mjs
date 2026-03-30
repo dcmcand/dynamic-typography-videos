@@ -1,23 +1,39 @@
 #!/usr/bin/env node
 
 import { execSync, spawnSync } from "child_process";
-import { existsSync, copyFileSync, mkdirSync, statSync, readFileSync } from "fs";
-import { resolve, basename, parse as parsePath } from "path";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  statSync as fstatSync,
+  mkdirSync,
+} from "fs";
+import { resolve, join } from "path";
 import { homedir } from "os";
 import { parseArgs } from "util";
+import yaml from "js-yaml";
+import { resolveConfig } from "./config.mjs";
+import { renderVideo } from "./render.mjs";
 
-const { values: args } = parseArgs({
+// --- Parse CLI ---
+
+const { values: flags, positionals } = parseArgs({
   options: {
     input: { type: "string" },
     lyrics: { type: "string" },
     instrumental: { type: "string" },
-    style: { type: "string", default: "neon" },
+    style: { type: "string" },
     output: { type: "string" },
-    model: { type: "string", default: "base" },
+    "output-folder": { type: "string" },
+    model: { type: "string" },
     language: { type: "string" },
+    title: { type: "string" },
     preview: { type: "boolean", default: false },
+    retranscribe: { type: "boolean", default: false },
     open: { type: "boolean", default: false },
   },
+  allowPositionals: true,
 });
 
 function fatal(msg) {
@@ -34,132 +50,169 @@ function checkCommand(cmd) {
   }
 }
 
-// Validate prerequisites
+// --- Validate prerequisites ---
+
 if (!checkCommand("pixi")) {
   fatal("pixi not found. Install from https://pixi.sh");
 }
-if (!checkCommand("node")) {
-  fatal("node not found. Install from https://nodejs.org");
-}
 
-if (!args.input) {
-  fatal("--input is required. Usage: node scripts/generate.mjs --input song.mp3 [--lyrics lyrics.txt] --style neon --output out/video.mp4");
-}
+// --- Detect mode: folder vs flag-based ---
 
-const inputPath = resolve(args.input);
-if (!existsSync(inputPath)) {
-  fatal(`Audio file not found: ${inputPath}`);
-}
+const folderArg = positionals[0];
+const isFolderMode = folderArg && existsSync(folderArg) && fstatSync(resolve(folderArg)).isDirectory();
 
-if (!args.output) {
+let config;
+
+if (isFolderMode) {
+  const folderPath = resolve(folderArg);
+  const files = readdirSync(folderPath);
+
+  // Load song.yaml if present
+  let parsedYaml;
+  const yamlPath = join(folderPath, "song.yaml");
+  if (existsSync(yamlPath)) {
+    parsedYaml = yaml.load(readFileSync(yamlPath, "utf-8"));
+  }
+
+  try {
+    config = resolveConfig(flags, { folderPath, files, yaml: parsedYaml });
+  } catch (err) {
+    fatal(err.message);
+  }
+} else {
+  // Legacy flag-based mode
+  if (!flags.input) {
+    fatal(
+      "Usage: node scripts/generate.mjs <folder>\n" +
+      "       node scripts/generate.mjs --input song.mp3 [--lyrics lyrics.txt] [--style neon]"
+    );
+  }
+
+  const inputPath = resolve(flags.input);
+  if (!existsSync(inputPath)) {
+    fatal(`Audio file not found: ${inputPath}`);
+  }
+
+  const { parse: parsePath } = await import("path");
   const songName = parsePath(inputPath).name;
-  const suffix = args.instrumental ? " karaoke" : "";
-  args.output = resolve(homedir(), "Videos", `${songName}${suffix}.mp4`);
-}
+  const hasInstrumental = !!flags.instrumental;
+  const suffix = hasInstrumental ? " karaoke" : "";
 
-if (args.lyrics) {
-  const lyricsPath = resolve(args.lyrics);
-  if (!existsSync(lyricsPath)) {
-    fatal(`Lyrics file not found: ${lyricsPath}`);
-  }
-}
+  config = {
+    title: songName,
+    songPath: inputPath,
+    lyricsPath: flags.lyrics ? resolve(flags.lyrics) : null,
+    instrumentalPath: flags.instrumental ? resolve(flags.instrumental) : null,
+    alignedLyricsPath: null,
+    style: flags.style || "neon",
+    model: flags.model || "base",
+    language: flags.language || null,
+    generateKaraoke: hasInstrumental,
+    retranscribe: flags.retranscribe || false,
+    preview: flags.preview || false,
+    lyricOutputPath: flags.output
+      ? resolve(flags.output)
+      : resolve(homedir(), "Videos", `${songName}.mp4`),
+    karaokeOutputPath: resolve(homedir(), "Videos", `${songName} karaoke.mp4`),
+    folderPath: null,
+  };
 
-if (args.instrumental) {
-  const instrumentalPath = resolve(args.instrumental);
-  if (!existsSync(instrumentalPath)) {
-    fatal(`Instrumental file not found: ${instrumentalPath}`);
+  // Validate flag-based inputs
+  if (config.lyricsPath && !existsSync(config.lyricsPath)) {
+    fatal(`Lyrics file not found: ${config.lyricsPath}`);
   }
-  if (!args.lyrics) {
+  if (config.instrumentalPath && !existsSync(config.instrumentalPath)) {
+    fatal(`Instrumental file not found: ${config.instrumentalPath}`);
+  }
+  if (config.instrumentalPath && !config.lyricsPath) {
     fatal("--instrumental requires --lyrics (karaoke needs known lyrics for word timing)");
   }
 }
 
-// Step 1: Transcribe
-console.log("\n--- Step 1: Transcription ---\n");
+// --- Step 1: Transcription (or cache hit) ---
 
-const transcriptPath = resolve("src/transcript.json");
-const transcribeArgs = [
-  "run", "python", "scripts/transcribe.py",
-  "--input", inputPath,
-  "--output", transcriptPath,
-  "--model", args.model,
-];
-if (args.lyrics) {
-  transcribeArgs.push("--lyrics", resolve(args.lyrics));
+let transcript;
+const cachedPath = config.alignedLyricsPath;
+const hasCached = cachedPath && existsSync(cachedPath) && !config.retranscribe;
+
+if (hasCached) {
+  console.log(`\n--- Step 1: Using cached transcript: ${cachedPath} ---\n`);
+  transcript = JSON.parse(readFileSync(cachedPath, "utf-8"));
+} else {
+  console.log("\n--- Step 1: Transcription ---\n");
+
+  // Transcribe to a temp location, then save to cache
+  const transcriptTmp = resolve("src/transcript.json");
+  const transcribeArgs = [
+    "run", "python", "scripts/transcribe.py",
+    "--input", config.songPath,
+    "--output", transcriptTmp,
+    "--model", config.model,
+  ];
+  if (config.lyricsPath) {
+    transcribeArgs.push("--lyrics", config.lyricsPath);
+  }
+  if (config.language) {
+    transcribeArgs.push("--language", config.language);
+  }
+
+  const transcribeResult = spawnSync("pixi", transcribeArgs, {
+    stdio: "inherit",
+    cwd: resolve("."),
+  });
+  if (transcribeResult.status !== 0) {
+    fatal("Transcription failed");
+  }
+
+  transcript = JSON.parse(readFileSync(transcriptTmp, "utf-8"));
+
+  // Cache the transcript to the song folder
+  if (cachedPath) {
+    writeFileSync(cachedPath, JSON.stringify(transcript, null, 2));
+    console.log(`Cached transcript to ${cachedPath}`);
+  }
 }
-if (args.language) {
-  transcribeArgs.push("--language", args.language);
-}
 
-const transcribeResult = spawnSync("pixi", transcribeArgs, {
-  stdio: "inherit",
-  cwd: resolve("."),
-});
-if (transcribeResult.status !== 0) {
-  fatal("Transcription failed");
-}
+// --- Step 2: Open Studio if requested ---
 
-// Step 2: Copy audio to public/
-console.log("\n--- Step 2: Preparing audio ---\n");
-
-mkdirSync(resolve("public"), { recursive: true });
-const audioSourcePath = args.instrumental ? resolve(args.instrumental) : inputPath;
-const audioDestName = "audio" + audioSourcePath.substring(audioSourcePath.lastIndexOf("."));
-const audioDest = resolve("public", audioDestName);
-copyFileSync(audioSourcePath, audioDest);
-console.log(`Copied ${args.instrumental ? "instrumental" : "audio"} to ${audioDest}`);
-
-// Step 3: Open Studio if requested
-if (args.open) {
+if (flags.open) {
   console.log("\n--- Opening Remotion Studio ---\n");
   console.log("Close Studio and press Ctrl+C when ready to render.");
   spawnSync("npx", ["remotion", "studio"], { stdio: "inherit" });
 }
 
-// Step 4: Render
-console.log("\n--- Step 3: Rendering video ---\n");
+// --- Step 3: Render lyric video ---
 
-const outputPath = resolve(args.output);
-mkdirSync(resolve(outputPath, ".."), { recursive: true });
+console.log("\n--- Step 2: Rendering lyric video ---\n");
 
-const transcript = JSON.parse(readFileSync(transcriptPath, "utf-8"));
-const isKaraoke = !!args.instrumental;
-const compositionId = isKaraoke ? "KaraokeVideo" : "LyricVideo";
-
-const countdownDuration =
-  isKaraoke && transcript.verses && transcript.verses.length > 0 && transcript.verses[0].start < 5
-    ? 5
-    : 0;
-
-const props = JSON.stringify({
+renderVideo({
   transcript,
-  style: args.style,
-  audioSrc: audioDestName,
-  ...(isKaraoke && { countdownDuration }),
+  style: config.style,
+  audioSourcePath: config.songPath,
+  outputPath: config.lyricOutputPath,
+  compositionId: "LyricVideo",
+  preview: config.preview,
 });
 
-const renderArgs = [
-  "remotion", "render",
-  "src/index.ts",
-  compositionId,
-  outputPath,
-  `--props=${props}`,
-];
+// --- Step 4: Render karaoke video (if configured) ---
 
-if (args.preview) {
-  renderArgs.push("--frames=0-449");
+if (config.generateKaraoke) {
+  console.log("\n--- Step 3: Rendering karaoke video ---\n");
+
+  const countdownDuration =
+    transcript.verses && transcript.verses.length > 0 && transcript.verses[0].start < 5
+      ? 5
+      : 0;
+
+  renderVideo({
+    transcript,
+    style: config.style,
+    audioSourcePath: config.instrumentalPath,
+    outputPath: config.karaokeOutputPath,
+    compositionId: "KaraokeVideo",
+    countdownDuration,
+    preview: config.preview,
+  });
 }
 
-const renderResult = spawnSync("npx", renderArgs, {
-  stdio: "inherit",
-  cwd: resolve("."),
-});
-
-if (renderResult.status !== 0) {
-  fatal("Render failed");
-}
-
-// Done
-const fileSize = statSync(outputPath).size;
-const sizeMB = (fileSize / 1024 / 1024).toFixed(1);
-console.log(`\nDone -> ${outputPath} (${sizeMB} MB)`);
+console.log("\nDone!");

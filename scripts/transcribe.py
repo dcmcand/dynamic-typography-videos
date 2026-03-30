@@ -31,7 +31,7 @@ def group_words_auto(words: list[dict]) -> list[dict]:
         return []
 
     lines = []
-    current_words = [words[0]]
+    current_indices = [0]
 
     for i in range(1, len(words)):
         prev_word = words[i - 1]
@@ -40,14 +40,14 @@ def group_words_auto(words: list[dict]) -> list[dict]:
         silence_gap = curr_word["start"] - prev_word["end"]
         prev_ends_sentence = prev_word["word"].rstrip().endswith((".", "?", "!"))
 
-        if len(current_words) >= 6 or silence_gap > 1.2 or prev_ends_sentence:
-            lines.append(_make_line(current_words))
-            current_words = [curr_word]
+        if len(current_indices) >= 6 or silence_gap > 1.2 or prev_ends_sentence:
+            lines.append(_make_line(current_indices, words))
+            current_indices = [i]
         else:
-            current_words.append(curr_word)
+            current_indices.append(i)
 
-    if current_words:
-        lines.append(_make_line(current_words))
+    if current_indices:
+        lines.append(_make_line(current_indices, words))
 
     return lines
 
@@ -76,15 +76,15 @@ def group_words_from_lyrics(
         if count <= 0:
             continue
 
-        line_words = words[word_idx : word_idx + count]
+        line_indices = list(range(word_idx, word_idx + count))
         word_idx += count
 
-        if len(line_words) > 8:
-            for chunk_start in range(0, len(line_words), 8):
-                chunk = line_words[chunk_start : chunk_start + 8]
-                lines.append(_make_line(chunk))
+        if len(line_indices) > 8:
+            for chunk_start in range(0, len(line_indices), 8):
+                chunk = line_indices[chunk_start : chunk_start + 8]
+                lines.append(_make_line(chunk, words))
         else:
-            lines.append(_make_line(line_words))
+            lines.append(_make_line(line_indices, words))
 
     return lines
 
@@ -123,20 +123,17 @@ def group_verses_from_lyrics(lyrics_text: str, lines: list[dict]) -> list[dict]:
     verses = []
     for group in verse_groups:
         verses.append({
-            "lines": group,
-            "start": lines[group[0]]["start"],
-            "end": lines[group[-1]]["end"],
+            "lineIndices": group,
         })
     return verses
 
 
-def _make_line(words: list[dict]) -> dict:
-    """Build a line dict from a list of word dicts."""
+def _make_line(word_indices: list[int], words: list[dict]) -> dict:
+    """Build a line dict from global word indices."""
+    line_words = [words[i] for i in word_indices]
     return {
-        "text": " ".join(w["word"].strip() for w in words),
-        "start": words[0]["start"],
-        "end": words[-1]["end"],
-        "words": words,
+        "text": " ".join(w["word"].strip() for w in line_words),
+        "wordIndices": word_indices,
     }
 
 

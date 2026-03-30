@@ -89,6 +89,14 @@ def group_words_from_lyrics(
     return lines
 
 
+def _display_line_count(lyric_line: str) -> int:
+    """How many display lines a single lyrics line produces after 8-word splitting."""
+    word_count = len(lyric_line.split())
+    if word_count <= 8:
+        return 1
+    return (word_count + 7) // 8
+
+
 def group_verses_from_lyrics(lyrics_text: str, lines: list[dict]) -> list[dict]:
     """Group lines into verses based on blank-line separations in lyrics text."""
     raw_lines = lyrics_text.splitlines()
@@ -103,9 +111,11 @@ def group_verses_from_lyrics(lyrics_text: str, lines: list[dict]) -> list[dict]:
                 verse_groups.append(current_group)
                 current_group = []
         else:
-            if line_idx < len(lines):
-                current_group.append(line_idx)
-                line_idx += 1
+            display_count = _display_line_count(stripped)
+            for _ in range(display_count):
+                if line_idx < len(lines):
+                    current_group.append(line_idx)
+                    line_idx += 1
 
     if current_group:
         verse_groups.append(current_group)

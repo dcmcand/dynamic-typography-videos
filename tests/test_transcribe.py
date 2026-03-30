@@ -160,6 +160,19 @@ class TestGroupVersesWithBrackets:
         assert len(verses) == 1
         assert verses[0]["lines"] == [0, 1]
 
+    def test_long_lines_split_into_multiple_display_lines(self):
+        # A 10-word lyrics line splits into 2 display lines (8 + 2)
+        lyrics_text = "one two three four five six seven eight nine ten\n\nshort line"
+        lines = [
+            {"text": "one two three four five six seven eight", "start": 0.0, "end": 4.0, "words": []},
+            {"text": "nine ten", "start": 4.0, "end": 5.0, "words": []},
+            {"text": "short line", "start": 7.0, "end": 8.0, "words": []},
+        ]
+        verses = group_verses_from_lyrics(lyrics_text, lines)
+        assert len(verses) == 2
+        assert verses[0]["lines"] == [0, 1]  # both display lines from the split
+        assert verses[1]["lines"] == [2]
+
 
 class TestGroupVersesFromLyrics:
     def test_groups_lines_by_blank_line_separator(self):

@@ -53,7 +53,8 @@ if (!existsSync(inputPath)) {
 
 if (!args.output) {
   const songName = parsePath(inputPath).name;
-  args.output = resolve(homedir(), "Videos", `${songName}.mp4`);
+  const suffix = args.instrumental ? " karaoke" : "";
+  args.output = resolve(homedir(), "Videos", `${songName}${suffix}.mp4`);
 }
 
 if (args.lyrics) {

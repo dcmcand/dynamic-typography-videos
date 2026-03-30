@@ -1,6 +1,6 @@
 {
-  "name": "lyric-video-remotion",
-  "private": true,
+  "name": "dynamic-typography-videos",
+  "license": "Apache-2.0",
   "scripts": {
     "start": "npx remotion studio",
     "render": "npx remotion render LyricVideo out/video.mp4",

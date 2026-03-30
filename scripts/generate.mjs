@@ -30,6 +30,9 @@ const { values: flags, positionals } = parseArgs({
     title: { type: "string" },
     preview: { type: "boolean", default: false },
     retranscribe: { type: "boolean", default: false },
+    "only-lyric": { type: "boolean", default: false },
+    "only-karaoke": { type: "boolean", default: false },
+    "only-transcribe": { type: "boolean", default: false },
     open: { type: "boolean", default: false },
   },
   allowPositionals: true,
@@ -132,7 +135,8 @@ if (isFolderMode) {
 
 let transcript;
 const cachedPath = config.alignedLyricsPath;
-const hasCached = cachedPath && existsSync(cachedPath) && !config.retranscribe;
+const forceTranscribe = config.retranscribe || flags["only-transcribe"];
+const hasCached = cachedPath && existsSync(cachedPath) && !forceTranscribe;
 
 if (hasCached) {
   console.log(`\n--- Step 1: Using cached transcript: ${cachedPath} ---\n`);
@@ -172,7 +176,14 @@ if (hasCached) {
   }
 }
 
-// --- Step 2: Open Studio if requested ---
+// --- Early exit if only transcribing ---
+
+if (flags["only-transcribe"]) {
+  console.log("\nDone! (transcribe only)");
+  process.exit(0);
+}
+
+// --- Open Studio if requested ---
 
 if (flags.open) {
   console.log("\n--- Opening Remotion Studio ---\n");
@@ -180,23 +191,28 @@ if (flags.open) {
   spawnSync("npx", ["remotion", "studio"], { stdio: "inherit" });
 }
 
-// --- Step 3: Render lyric video ---
+// --- Render lyric video ---
 
-console.log("\n--- Step 2: Rendering lyric video ---\n");
+const renderLyric = !flags["only-karaoke"];
+const renderKaraoke = config.generateKaraoke && !flags["only-lyric"];
 
-renderVideo({
-  transcript,
-  style: config.style,
-  audioSourcePath: config.songPath,
-  outputPath: config.lyricOutputPath,
-  compositionId: "LyricVideo",
-  preview: config.preview,
-});
+if (renderLyric) {
+  console.log("\n--- Rendering lyric video ---\n");
 
-// --- Step 4: Render karaoke video (if configured) ---
+  renderVideo({
+    transcript,
+    style: config.style,
+    audioSourcePath: config.songPath,
+    outputPath: config.lyricOutputPath,
+    compositionId: "LyricVideo",
+    preview: config.preview,
+  });
+}
 
-if (config.generateKaraoke) {
-  console.log("\n--- Step 3: Rendering karaoke video ---\n");
+// --- Render karaoke video ---
+
+if (renderKaraoke) {
+  console.log("\n--- Rendering karaoke video ---\n");
 
   const countdownDuration =
     transcript.verses && transcript.verses.length > 0 && transcript.verses[0].start < 5

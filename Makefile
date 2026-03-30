@@ -1,7 +1,16 @@
-.PHONY: generate preview studio test setup clean
+.PHONY: generate generate-lyric generate-karaoke transcribe preview studio test setup clean
 
 generate:
 	node scripts/generate.mjs $(filter-out $@,$(MAKECMDGOALS))
+
+generate-lyric:
+	node scripts/generate.mjs $(filter-out $@,$(MAKECMDGOALS)) --only-lyric
+
+generate-karaoke:
+	node scripts/generate.mjs $(filter-out $@,$(MAKECMDGOALS)) --only-karaoke
+
+transcribe:
+	node scripts/generate.mjs $(filter-out $@,$(MAKECMDGOALS)) --only-transcribe
 
 preview:
 	node scripts/generate.mjs $(filter-out $@,$(MAKECMDGOALS)) --preview

@@ -95,7 +95,7 @@ if (isFolderMode) {
   const { parse: parsePath } = await import("path");
   const songName = parsePath(inputPath).name;
   const hasInstrumental = !!flags.instrumental;
-  const suffix = hasInstrumental ? " karaoke" : "";
+  const previewSuffix = flags.preview ? " preview" : "";
 
   config = {
     title: songName,
@@ -111,8 +111,8 @@ if (isFolderMode) {
     preview: flags.preview || false,
     lyricOutputPath: flags.output
       ? resolve(flags.output)
-      : resolve(homedir(), "Videos", `${songName}.mp4`),
-    karaokeOutputPath: resolve(homedir(), "Videos", `${songName} karaoke.mp4`),
+      : resolve(homedir(), "Videos", `${songName}${previewSuffix}.mp4`),
+    karaokeOutputPath: resolve(homedir(), "Videos", `${songName} karaoke${previewSuffix}.mp4`),
     folderPath: null,
   };
 

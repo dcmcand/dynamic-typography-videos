@@ -56,10 +56,11 @@ export function resolveConfig(flags, folder) {
   const outputDir = flags["output-folder"]
     ? resolve(flags["output-folder"])
     : folderPath;
+  const previewSuffix = preview ? " preview" : "";
   const lyricOutputPath = flags.output
     ? resolve(flags.output)
-    : resolve(outputDir, `${title}.mp4`);
-  const karaokeOutputPath = resolve(outputDir, `${title} karaoke.mp4`);
+    : resolve(outputDir, `${title}${previewSuffix}.mp4`);
+  const karaokeOutputPath = resolve(outputDir, `${title} karaoke${previewSuffix}.mp4`);
 
   if (generateKaraoke) {
     if (!lyricsPath) {

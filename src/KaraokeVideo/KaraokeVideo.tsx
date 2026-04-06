@@ -33,6 +33,9 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
   style: styleName,
   audioSrc,
   countdownDuration,
+  backgroundImage,
+  autoFontColor,
+  autoShadowColor,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -52,7 +55,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
         : [];
     return (
       <AbsoluteFill>
-        <Background style={preset} frame={frame} fps={fps} />
+        <Background style={preset} frame={frame} fps={fps} backgroundImage={backgroundImage} />
         <AbsoluteFill
           style={{
             display: "flex",

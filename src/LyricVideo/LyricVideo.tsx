@@ -25,6 +25,9 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   transcript,
   style: styleName,
   audioSrc,
+  backgroundImage,
+  autoFontColor,
+  autoShadowColor,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -43,7 +46,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
 
   return (
     <AbsoluteFill>
-      <Background style={preset} frame={frame} fps={fps} />
+      <Background style={preset} frame={frame} fps={fps} backgroundImage={backgroundImage} />
 
       {audioSrc && <Audio src={staticFile(audioSrc.replace(/^\//, ""))} />}
 

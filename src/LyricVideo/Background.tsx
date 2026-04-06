@@ -1,11 +1,15 @@
 import React, { useMemo } from "react";
-import { AbsoluteFill, interpolate } from "remotion";
+import { AbsoluteFill, Img, interpolate, staticFile } from "remotion";
 import type { StylePreset } from "../types";
+
+const KEN_BURNS_CYCLE = 30; // seconds
+const KEN_BURNS_SCALE = 0.08; // 8% zoom
 
 interface BackgroundProps {
   style: StylePreset;
   frame: number;
   fps: number;
+  backgroundImage?: string;
 }
 
 interface Particle {
@@ -17,7 +21,7 @@ interface Particle {
   offset: number;
 }
 
-export const Background: React.FC<BackgroundProps> = ({ style, frame, fps }) => {
+export const Background: React.FC<BackgroundProps> = ({ style, frame, fps, backgroundImage }) => {
   const particles = useMemo(() => {
     if (!style.particles) return [];
     const seeds: Particle[] = [];
@@ -35,6 +39,27 @@ export const Background: React.FC<BackgroundProps> = ({ style, frame, fps }) => 
   }, [style.particles]);
 
   const t = frame / fps;
+
+  if (backgroundImage) {
+    const cycleProgress = (t % KEN_BURNS_CYCLE) / KEN_BURNS_CYCLE;
+    const scale = 1 + KEN_BURNS_SCALE * Math.sin(cycleProgress * 2 * Math.PI);
+    const translateX =
+      2 * Math.sin(cycleProgress * 2 * Math.PI + 0.5);
+
+    return (
+      <AbsoluteFill style={{ overflow: "hidden" }}>
+        <Img
+          src={staticFile(backgroundImage.replace(/^\//, ""))}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: `scale(${scale}) translateX(${translateX}%)`,
+          }}
+        />
+      </AbsoluteFill>
+    );
+  }
 
   let background: string;
   if (style.bgGradient) {

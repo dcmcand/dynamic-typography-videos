@@ -20,6 +20,9 @@ export interface KaraokeVideoProps {
   style: string;
   audioSrc: string;
   countdownDuration: number;
+  backgroundImage?: string;
+  autoFontColor?: string;
+  autoShadowColor?: string;
 }
 
 const INSTRUMENTAL_THRESHOLD = 3; // seconds

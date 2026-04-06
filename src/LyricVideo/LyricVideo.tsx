@@ -16,6 +16,9 @@ export interface LyricVideoProps {
   transcript: Transcript;
   style: string;
   audioSrc: string;
+  backgroundImage?: string;
+  autoFontColor?: string;
+  autoShadowColor?: string;
 }
 
 export const LyricVideo: React.FC<LyricVideoProps> = ({

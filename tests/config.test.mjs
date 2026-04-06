@@ -210,6 +210,57 @@ describe("resolveConfig", () => {
     });
   });
 
+  describe("background config", () => {
+    it("resolves background from yaml to absolute path", () => {
+      const config = resolveConfig(
+        {},
+        {
+          folderPath: "/songs/test",
+          files: ["song.mp3", "bg.jpg"],
+          yaml: { song_path: "song.mp3", background: "bg.jpg" },
+        },
+      );
+      expect(config.backgroundPath).toBe("/songs/test/bg.jpg");
+    });
+
+    it("returns null backgroundPath when not specified", () => {
+      const config = resolveConfig(
+        {},
+        {
+          folderPath: "/songs/test",
+          files: ["song.mp3"],
+          yaml: { song_path: "song.mp3" },
+        },
+      );
+      expect(config.backgroundPath).toBe(null);
+    });
+
+    it("preserves explicit style when background is also set", () => {
+      const config = resolveConfig(
+        {},
+        {
+          folderPath: "/songs/test",
+          files: ["song.mp3", "bg.jpg"],
+          yaml: { song_path: "song.mp3", background: "bg.jpg", style: "bold" },
+        },
+      );
+      expect(config.style).toBe("bold");
+      expect(config.backgroundPath).toBe("/songs/test/bg.jpg");
+    });
+
+    it("uses CLI --background flag", () => {
+      const config = resolveConfig(
+        { background: "/other/image.png" },
+        {
+          folderPath: "/songs/test",
+          files: ["song.mp3"],
+          yaml: { song_path: "song.mp3" },
+        },
+      );
+      expect(config.backgroundPath).toBe("/other/image.png");
+    });
+  });
+
   describe("validation", () => {
     it("errors when generate_karaoke is true but lyrics missing", () => {
       expect(() =>

@@ -41,6 +41,13 @@ export function resolveConfig(flags, folder) {
     ? instrumentalFullPath
     : (has(instrumentalFile) ? instrumentalFullPath : null);
 
+  // Background image
+  const backgroundPath = flags.background
+    ? resolve(flags.background)
+    : y.background
+      ? resolve(folderPath, y.background)
+      : null;
+
   const alignedFile = y.aligned_lyrics || "lyrics.json";
   const alignedLyricsPath = resolve(folderPath, alignedFile);
 
@@ -89,6 +96,7 @@ export function resolveConfig(flags, folder) {
     preview,
     lyricOutputPath,
     karaokeOutputPath,
+    backgroundPath,
     folderPath,
   };
 }

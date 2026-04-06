@@ -66,8 +66,6 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               isActive={false}
               style={preset}
               fps={fps}
-              currentTime={currentTime}
-              frame={frame}
               lineStartFrame={Math.floor(getLineStart(lines[prevIndex], words) * fps)}
             />
           </div>
@@ -87,8 +85,6 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               isActive={true}
               style={preset}
               fps={fps}
-              currentTime={currentTime}
-              frame={frame}
               lineStartFrame={Math.floor(getLineStart(lines[activeIndex], words) * fps)}
             />
           </div>
@@ -108,8 +104,6 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               isActive={false}
               style={preset}
               fps={fps}
-              currentTime={currentTime}
-              frame={frame}
               lineStartFrame={Math.floor(getLineStart(lines[nextIndex], words) * fps)}
             />
           </div>

@@ -13,6 +13,9 @@ import { resolve } from "path";
  * @param {string} opts.compositionId - "LyricVideo" or "KaraokeVideo"
  * @param {number} opts.countdownDuration - Countdown seconds (karaoke only, 0 for lyric)
  * @param {boolean} opts.preview - Render first 15 seconds only
+ * @param {string} [opts.backgroundSourcePath] - Absolute path to background image
+ * @param {string} [opts.autoFontColor] - Auto-detected font color from background
+ * @param {string} [opts.autoShadowColor] - Auto-detected shadow color from background
  */
 export function renderVideo({
   transcript,
@@ -22,12 +25,22 @@ export function renderVideo({
   compositionId,
   countdownDuration = 0,
   preview = false,
+  backgroundSourcePath,
+  autoFontColor,
+  autoShadowColor,
 }) {
   // Copy audio to public/
   mkdirSync(resolve("public"), { recursive: true });
   const audioDestName = "audio" + audioSourcePath.substring(audioSourcePath.lastIndexOf("."));
   const audioDest = resolve("public", audioDestName);
   copyFileSync(audioSourcePath, audioDest);
+
+  // Copy background image to public/ if provided
+  let backgroundImageName;
+  if (backgroundSourcePath) {
+    backgroundImageName = "background" + backgroundSourcePath.substring(backgroundSourcePath.lastIndexOf("."));
+    copyFileSync(backgroundSourcePath, resolve("public", backgroundImageName));
+  }
 
   // Build props
   mkdirSync(resolve(outputPath, ".."), { recursive: true });
@@ -37,6 +50,9 @@ export function renderVideo({
     style,
     audioSrc: audioDestName,
     ...(compositionId === "KaraokeVideo" && { countdownDuration }),
+    ...(backgroundImageName && { backgroundImage: backgroundImageName }),
+    ...(autoFontColor && { autoFontColor }),
+    ...(autoShadowColor && { autoShadowColor }),
   });
 
   const renderArgs = [

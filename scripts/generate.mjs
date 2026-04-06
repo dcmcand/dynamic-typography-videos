@@ -14,6 +14,7 @@ import { parseArgs } from "util";
 import yaml from "js-yaml";
 import { resolveConfig } from "./config.mjs";
 import { renderVideo } from "./render.mjs";
+import { analyzeBackgroundImage } from "./analyze-image.mjs";
 
 // --- Parse CLI ---
 
@@ -22,6 +23,7 @@ const { values: flags, positionals } = parseArgs({
     input: { type: "string" },
     lyrics: { type: "string" },
     instrumental: { type: "string" },
+    background: { type: "string" },
     style: { type: "string" },
     output: { type: "string" },
     "output-folder": { type: "string" },
@@ -105,8 +107,9 @@ if (isFolderMode) {
     songPath: inputPath,
     lyricsPath: flags.lyrics ? resolve(flags.lyrics) : null,
     instrumentalPath: flags.instrumental ? resolve(flags.instrumental) : null,
+    backgroundPath: flags.background ? resolve(flags.background) : null,
     alignedLyricsPath: null,
-    style: flags.style || "neon",
+    style: flags.style || (flags.background ? "minimal" : "neon"),
     model: flags.model || "base",
     language: flags.language || null,
     generateKaraoke: hasInstrumental,
@@ -198,6 +201,21 @@ if (flags.open) {
   spawnSync("npx", ["remotion", "studio"], { stdio: "inherit" });
 }
 
+// --- Analyze background image if provided ---
+
+let backgroundProps = {};
+if (config.backgroundPath) {
+  if (!existsSync(config.backgroundPath)) {
+    fatal(`Background image not found: ${config.backgroundPath}`);
+  }
+  console.log("\n--- Analyzing background image ---\n");
+  const colors = await analyzeBackgroundImage(config.backgroundPath);
+  backgroundProps = {
+    backgroundSourcePath: config.backgroundPath,
+    ...colors,
+  };
+}
+
 // --- Render lyric video ---
 
 const renderLyric = !flags["only-karaoke"];
@@ -213,6 +231,7 @@ if (renderLyric) {
     outputPath: config.lyricOutputPath,
     compositionId: "LyricVideo",
     preview: config.preview,
+    ...backgroundProps,
   });
 }
 
@@ -234,6 +253,7 @@ if (renderKaraoke) {
     compositionId: "KaraokeVideo",
     countdownDuration,
     preview: config.preview,
+    ...backgroundProps,
   });
 }
 

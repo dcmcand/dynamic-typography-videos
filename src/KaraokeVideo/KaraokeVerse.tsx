@@ -9,6 +9,7 @@ interface KaraokeVerseProps {
   words: Word[];
   style: StylePreset;
   currentTime: number;
+  textShadow?: string;
 }
 
 export const KaraokeVerse: React.FC<KaraokeVerseProps> = ({
@@ -17,6 +18,7 @@ export const KaraokeVerse: React.FC<KaraokeVerseProps> = ({
   words,
   style,
   currentTime,
+  textShadow,
 }) => {
   const verseLines = verse.lineIndices.map((idx) => lines[idx]);
   const lineCount = verseLines.length;
@@ -60,6 +62,7 @@ export const KaraokeVerse: React.FC<KaraokeVerseProps> = ({
                 style={style}
                 currentTime={currentTime}
                 fontSize={fontSize}
+                textShadow={textShadow}
               />
             ))}
           </div>

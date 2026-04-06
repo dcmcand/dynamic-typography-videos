@@ -7,6 +7,7 @@ interface KaraokeWordProps {
   style: StylePreset;
   currentTime: number;
   fontSize: number;
+  textShadow?: string;
 }
 
 export const KaraokeWord: React.FC<KaraokeWordProps> = ({
@@ -14,6 +15,7 @@ export const KaraokeWord: React.FC<KaraokeWordProps> = ({
   style,
   currentTime,
   fontSize,
+  textShadow,
 }) => {
   const progress = getWordProgress(word, currentTime);
 
@@ -29,7 +31,7 @@ export const KaraokeWord: React.FC<KaraokeWordProps> = ({
       }}
     >
       {/* Base layer: dim / not-yet-sung */}
-      <span style={{ color: style.activeColor }}>
+      <span style={{ color: style.activeColor, textShadow: textShadow || "none" }}>
         {word.word}
       </span>
       {/* Overlay layer: highlighted / already-sung, clipped to progress */}
@@ -41,9 +43,9 @@ export const KaraokeWord: React.FC<KaraokeWordProps> = ({
           color: style.highlightColor,
           clipPath: `inset(0 ${(1 - progress) * 100}% 0 0)`,
           textShadow:
-            style.glow && progress > 0
+            textShadow || (style.glow && progress > 0
               ? `0 0 8px ${style.glowColor}, 0 0 20px ${style.glowColor}`
-              : "none",
+              : "none"),
         }}
       >
         {word.word}

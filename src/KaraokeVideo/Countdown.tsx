@@ -8,6 +8,7 @@ interface CountdownProps {
   fps: number;
   frame: number;
   firstVerseLines: Line[];
+  textShadow?: string;
 }
 
 export const Countdown: React.FC<CountdownProps> = ({
@@ -16,6 +17,7 @@ export const Countdown: React.FC<CountdownProps> = ({
   fps,
   frame,
   firstVerseLines,
+  textShadow,
 }) => {
   const displayNumber = Math.min(3, Math.ceil(secondsRemaining));
 
@@ -50,9 +52,9 @@ export const Countdown: React.FC<CountdownProps> = ({
             fontSize: style.fontSize * 2,
             transform: `scale(${scale})`,
             display: "inline-block",
-            textShadow: style.glow
+            textShadow: textShadow || (style.glow
               ? `0 0 20px ${style.glowColor}, 0 0 40px ${style.glowColor}`
-              : "none",
+              : "none"),
           }}
         >
           {displayNumber}
@@ -76,6 +78,7 @@ export const Countdown: React.FC<CountdownProps> = ({
               fontFamily: style.fontFamily,
               fontWeight: style.fontWeight,
               fontSize: style.fontSize * 0.5,
+              textShadow: textShadow || "none",
             }}
           >
             {line.text}

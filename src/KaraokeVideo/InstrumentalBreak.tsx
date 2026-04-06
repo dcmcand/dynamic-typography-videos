@@ -4,11 +4,13 @@ import type { StylePreset } from "../types";
 interface InstrumentalBreakProps {
   style: StylePreset;
   progress: number; // 0 to 1
+  textShadow?: string;
 }
 
 export const InstrumentalBreak: React.FC<InstrumentalBreakProps> = ({
   style,
   progress,
+  textShadow,
 }) => {
   const barWidth = 400;
   const barHeight = 8;
@@ -31,6 +33,7 @@ export const InstrumentalBreak: React.FC<InstrumentalBreakProps> = ({
           fontSize: style.fontSize * 0.5,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
+          textShadow: textShadow || "none",
         }}
       >
         Instrumental

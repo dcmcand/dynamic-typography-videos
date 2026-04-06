@@ -40,7 +40,21 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const preset = STYLES[styleName] ?? STYLES.neon;
+  const basePreset = STYLES[styleName] ?? STYLES.neon;
+  const preset = autoFontColor
+    ? {
+        ...basePreset,
+        activeColor: autoFontColor,
+        inactiveColor: autoFontColor,
+        highlightColor: autoFontColor,
+        particles: false,
+      }
+    : basePreset;
+
+  const textShadow = autoShadowColor
+    ? `0 0 20px ${autoShadowColor}`
+    : undefined;
+
   const verses = transcript.verses ?? [];
   const { lines, words } = transcript;
 
@@ -69,6 +83,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
             fps={fps}
             frame={frame}
             firstVerseLines={firstVerseLines}
+            textShadow={textShadow}
           />
         </AbsoluteFill>
       </AbsoluteFill>
@@ -138,6 +153,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
             words={words}
             style={preset}
             currentTime={currentTime}
+            textShadow={textShadow}
           />
         )}
 
@@ -145,6 +161,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
           <InstrumentalBreak
             style={preset}
             progress={instrumentalProgress}
+            textShadow={textShadow}
           />
         )}
 
@@ -158,6 +175,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
                 words={words}
                 style={preset}
                 currentTime={currentTime}
+                textShadow={textShadow}
               />
             </div>
           )}

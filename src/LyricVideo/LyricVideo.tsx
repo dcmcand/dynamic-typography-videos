@@ -33,7 +33,21 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   const { fps, width, height } = useVideoConfig();
   const currentTime = frame / fps;
 
-  const preset = STYLES[styleName] ?? STYLES.neon;
+  const basePreset = STYLES[styleName] ?? STYLES.neon;
+  const preset = autoFontColor
+    ? {
+        ...basePreset,
+        activeColor: autoFontColor,
+        inactiveColor: autoFontColor,
+        highlightColor: autoFontColor,
+        particles: false,
+      }
+    : basePreset;
+
+  const textShadow = autoShadowColor
+    ? `0 0 20px ${autoShadowColor}`
+    : undefined;
+
   const { lines, words } = transcript;
   const { activeIndex, prevIndex, nextIndex } = findActiveLine(
     lines,
@@ -73,6 +87,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               style={preset}
               fps={fps}
               lineStartFrame={Math.floor(getLineStart(lines[prevIndex], words) * fps)}
+              textShadow={textShadow}
             />
           </div>
         )}
@@ -92,6 +107,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               style={preset}
               fps={fps}
               lineStartFrame={Math.floor(getLineStart(lines[activeIndex], words) * fps)}
+              textShadow={textShadow}
             />
           </div>
         )}
@@ -111,6 +127,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               style={preset}
               fps={fps}
               lineStartFrame={Math.floor(getLineStart(lines[nextIndex], words) * fps)}
+              textShadow={textShadow}
             />
           </div>
         )}

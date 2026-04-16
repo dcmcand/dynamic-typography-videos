@@ -9,6 +9,7 @@ Generate animated lyric videos and karaoke videos from audio files. Two-stage pi
 - **Forced alignment** from a lyrics file for perfect word accuracy
 - **Auto-transcription** via Whisper when no lyrics are available
 - **5 style presets** (neon, minimal, retro, dreamy, bold)
+- **Optional background image** with Ken Burns pan/zoom; font and shadow colors are auto-picked for contrast from the image's average luminance (WCAG 2.1)
 - **1920x1080 @ 30fps** output, ready for YouTube
 
 ## Architecture
@@ -83,6 +84,7 @@ song_path: song.mp3
 lyrics_path: lyrics.txt
 instrumental_path: instrumental.mp3
 aligned_lyrics: lyrics.json
+background: background.jpg
 generate_karaoke: true
 style: neon
 language: es
@@ -136,20 +138,24 @@ Aligned transcripts are saved as `lyrics.json` in the song folder. On subsequent
 
 ## CLI Options
 
-| Flag              | Default                    | Description                              |
-|-------------------|----------------------------|------------------------------------------|
-| `--input`         | `song.mp3` (folder mode)   | Path to audio file (.mp3 or .wav)        |
-| `--lyrics`        | `lyrics.txt` (folder mode) | Path to lyrics .txt for forced alignment |
-| `--instrumental`  | none                       | Path to instrumental track (enables karaoke mode) |
-| `--style`         | `minimal`                  | Style preset name                        |
-| `--output`        | song folder or `~/Videos/` | Output video path                        |
-| `--output-folder` | song folder                | Write output videos to this directory    |
-| `--model`         | `base`                     | Whisper model size (tiny/base/small/medium/large) |
-| `--language`      | auto                       | Language code (en, es, etc.)             |
-| `--title`         | derived from folder name   | Override the video title                 |
-| `--preview`       | false                      | Render only first 15 seconds             |
-| `--retranscribe`  | false                      | Force re-transcription (ignore cache)    |
-| `--open`          | false                      | Open Remotion Studio before rendering    |
+| Flag                | Default                    | Description                              |
+|---------------------|----------------------------|------------------------------------------|
+| `--input`           | `song.mp3` (folder mode)   | Path to audio file (.mp3 or .wav)        |
+| `--lyrics`          | `lyrics.txt` (folder mode) | Path to lyrics .txt for forced alignment |
+| `--instrumental`    | none                       | Path to instrumental track (enables karaoke mode) |
+| `--background`      | none                       | Path to background image (auto-picks accessible font and shadow colors via WCAG luminance) |
+| `--style`           | `minimal` folder / `neon` flag (or `minimal` when `--background` is set) | Style preset name |
+| `--output`          | song folder or `~/Videos/` | Output video path                        |
+| `--output-folder`   | song folder                | Write output videos to this directory    |
+| `--model`           | `base`                     | Whisper model size (tiny/base/small/medium/large) |
+| `--language`        | auto                       | Language code (en, es, etc.)             |
+| `--title`           | derived from folder name   | Override the video title                 |
+| `--preview`         | false                      | Render only first 15 seconds             |
+| `--retranscribe`    | false                      | Force re-transcription (ignore cache)    |
+| `--only-transcribe` | false                      | Transcribe only, skip rendering          |
+| `--only-lyric`      | false                      | Render only the lyric video (skip karaoke) |
+| `--only-karaoke`    | false                      | Render only the karaoke video (skip lyric) |
+| `--open`            | false                      | Open Remotion Studio before rendering    |
 
 ## Lyrics File Format
 
@@ -174,6 +180,13 @@ npm start
 # Preview mode - render first 15 seconds only
 node scripts/generate.mjs --input song.mp3 --style neon --preview
 
+# Render directly via Remotion (requires src/transcript.json to already exist
+# and the default props in Root.tsx; mostly useful when iterating on components)
+npm run render
+
+# Transcribe only, skip rendering
+node scripts/generate.mjs contents/my_song/ --only-transcribe
+
 # Run tests
 npx vitest run
 pixi run python -m pytest tests/ -v
@@ -181,11 +194,11 @@ pixi run python -m pytest tests/ -v
 
 ## Fixing Transcription Errors
 
-Edit `src/transcript.json` directly after transcription:
+In folder mode, the transcript is cached to `<song folder>/lyrics.json` after the first run. Edit that file, then re-run `generate.mjs` - the cached transcript is reused automatically unless `--retranscribe` is passed. In flag-based mode, the transcript is written to `src/transcript.json`; edit it in place.
 
-- **Wrong word**: Find it in `words[]` and the matching `lines[].words[]` entry, change the `"word"` field
-- **Bad line break**: Split or merge entries in `lines[]`, update `start`/`end` to match first/last word
-- **Inaccurate timestamps**: Try `--model small` or `--model medium` for better accuracy
+- **Wrong word**: Find it in the top-level `words[]` array and change the `"word"` field. Then update the matching `lines[].text` entry so the display line matches (lines store rendered text separately from `wordIndices` into `words[]`).
+- **Bad line break**: Split or merge entries in `lines[]`, adjusting their `wordIndices` and `text`. `verses[].lineIndices` point into `lines[]`, so update them if you add or remove lines.
+- **Inaccurate timestamps**: Try `--model small` or `--model medium` for better accuracy.
 
 ## Render Time
 

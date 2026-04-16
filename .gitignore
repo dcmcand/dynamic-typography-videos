@@ -6,6 +6,11 @@ public/background.*
 src/transcript.json
 *.pyc
 __pycache__/
+.pytest_cache/
+.DS_Store
+.vscode/
+.idea/
+*.swp
 .env
 dist/
 CLAUDE.md

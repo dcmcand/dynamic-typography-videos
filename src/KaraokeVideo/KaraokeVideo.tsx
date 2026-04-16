@@ -41,11 +41,16 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
   const { fps } = useVideoConfig();
 
   const basePreset = STYLES[styleName] ?? STYLES.neon;
+  const dimmedFontColor = autoFontColor
+    ? autoFontColor.replace(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i, (_m, r, g, b) =>
+        `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, 0.4)`)
+    : undefined;
+
   const preset = autoFontColor
     ? {
         ...basePreset,
-        activeColor: autoFontColor,
-        inactiveColor: autoFontColor,
+        activeColor: dimmedFontColor ?? autoFontColor,
+        inactiveColor: dimmedFontColor ?? autoFontColor,
         highlightColor: autoFontColor,
         particles: false,
       }
@@ -131,7 +136,7 @@ export const KaraokeVideo: React.FC<KaraokeVideoProps> = ({
 
   return (
     <AbsoluteFill>
-      <Background style={preset} frame={frame} fps={fps} />
+      <Background style={preset} frame={frame} fps={fps} backgroundImage={backgroundImage} />
 
       {audioSrc && (
         <Sequence from={Math.round(countdownDuration * fps)}>

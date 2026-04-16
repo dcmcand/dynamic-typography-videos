@@ -2,6 +2,7 @@ node_modules/
 .pixi/
 out/*.mp4
 public/audio.*
+public/background.*
 src/transcript.json
 *.pyc
 __pycache__/
